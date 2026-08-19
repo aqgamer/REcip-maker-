@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Receipt Generator</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1a1d20;
+      --primary: #2563eb;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--card);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      margin-bottom: 16px;
+      font-size: 1.25rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-print {
+      background: #059669;
+      margin-top: 16px;
+    }
+
+    /* Thermal Receipt Styling */
+    .receipt-wrapper {
+      display: flex;
+      justify-content: center;
+      background: #e2e8f0;
+      padding: 20px;
+      border-radius: 8px;
+    }
+
+    .receipt {
+      width: 300px;
+      background: #fff;
+      padding: 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .receipt-header h3 {
+      font-size: 18px;
+      text-transform: uppercase;
+    }
+
+    .receipt-meta {
+      border-top: 1px dashed #000;
+      border-bottom: 1px dashed #000;
+      padding: 6px 0;
+      margin-bottom: 10px;
+      font-size: 11px;
+    }
+
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+
+    .receipt-table th {
+      border-bottom: 1px solid #000;
+      text-align: left;
+      padding-bottom: 4px;
+    }
+
+    .receipt-table td {
+      padding: 4px 0;
+    }
+
+    .text-right {
+      text-align: right;
+    }
+
+    .receipt-total {
+      border-top: 1px dashed #000;
+      padding-top: 6px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .receipt-footer {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 11px;
+    }
+
+    .barcode-display {
+      font-family: 'Libre Barcode 39', cursive, monospace;
+      font-size: 28px;
+      text-align: center;
+      margin-top: 8px;
+      letter-spacing: 2px;
+    }
+
+    /* Print Styles */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .receipt-wrapper, .receipt-wrapper * {
+        visibility: visible;
+      }
+      .receipt-wrapper {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: transparent;
+        padding: 0;
+      }
+      .receipt {
+        box-shadow: none;
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Data Entry Panel -->
+  <div class="card">
+    <h2>Data Entry</h2>
+    
+    <div class="form-group">
+      <label>Company Name</label>
+      <input type="text" id="companyInput" value="Shoaib Communication" oninput="updateReceipt()">
+    </div>
+
+    <div class="form-group">
+      <label>Customer Name</label>
+      <input type="text" id="customerInput" placeholder="Enter customer name" oninput="updateReceipt()">
+    </div>
+
+    <hr style="margin: 16px 0; border: none; border-top: 1px solid var(--border);">
+
+    <div class="form-group">
+      <label>Add Item</label>
+      <div class="row">
+        <input type="text" id="itemName" placeholder="Item name">
+        <input type="number" id="itemQty" placeholder="Qty" value="1" min="1">
+        <input type="number" id="itemPrice" placeholder="Price">
+      </div>
+      <button type="button" onclick="addItem()">Add Product</button>
+    </div>
+
+    <div class="form-group">
+      <label>Product Barcode (Optional)</label>
+      <input type="text" id="barcodeInput" placeholder="Enter barcode number" oninput="updateReceipt()">
+    </div>
+
+    <button class="btn-print" onclick="window.print()">Print Receipt</button>
+  </div>
+
+  <!-- Receipt Preview -->
+  <div class="card">
+    <h2>Receipt Preview</h2>
+    <div class="receipt-wrapper">
+      <div class="receipt">
+        <div class="receipt-header">
+          <h3 id="rCompany">COMPANY NAME</h3>
+        </div>
+
+        <div class="receipt-meta">
+          <div><strong>Date:</strong> <span id="rDateTime"></span></div>
+          <div><strong>Customer:</strong> <span id="rCustomer">Walk-in Customer</span></div>
+        </div>
+
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th class="text-right">Qty</th>
+              <th class="text-right">Price</th>
+              <th class="text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody id="rItemsList">
+            <!-- Items inject here -->
+          </tbody>
+        </table>
+
+        <div class="receipt-total">
+          <span>TOTAL:</span>
+          <span id="rTotal">Rs 0.00</span>
+        </div>
+
+        <div class="barcode-display" id="rBarcode">*12345678*</div>
+
+        <div class="receipt-footer">
+          <p>Thank you for shopping with us!</p>
+          <p id="rFooterCompany">Shoaib Communication</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let items = [];
+
+  // Set Automatic Real-time Date & Time
+  function setDateTime() {
+    const now = new Date();
+    const formatted = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('rDateTime').innerText = formatted;
+  }
+
+  function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const qty = parseFloat(document.getElementById('itemQty').value) || 1;
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+
+    if (!name || price <= 0) {
+      alert('Please enter a valid product name and price.');
+      return;
+    }
+
+    items.push({ name, qty, price, total: qty * price });
+
+    // Clear input fields
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemQty').value = '1';
+    document.getElementById('itemPrice').value = '';
+
+    updateReceipt();
+  }
+
+  function updateReceipt() {
+    // Dynamic Header & Footer
+    const company = document.getElementById('companyInput').value.trim() || 'Company Name';
+    document.getElementById('rCompany').innerText = company;
+    document.getElementById('rFooterCompany').innerText = company;
+
+    // Customer Name
+    const customer = document.getElementById('customerInput').value.trim() || 'Walk-in Customer';
+    document.getElementById('rCustomer').innerText = customer;
+
+    // Barcode Display
+    const barcode = document.getElementById('barcodeInput').value.trim();
+    const barcodeEl = document.getElementById('rBarcode');
+    if (barcode) {
+      barcodeEl.innerText = '*' + barcode + '*';
+      barcodeEl.style.display = 'block';
+    } else {
+      barcodeEl.style.display = 'none';
+    }
+
+    // Populate Items Table
+    const tbody = document.getElementById('rItemsList');
+    tbody.innerHTML = '';
+    let grandTotal = 0;
+
+    items.forEach(item => {
+      grandTotal += item.total;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.name}</td>
+        <td class="text-right">${item.qty}</td>
+        <td class="text-right">${item.price.toFixed(2)}</td>
+        <td class="text-right">${item.total.toFixed(2)}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById('rTotal').innerText = 'Rs ' + grandTotal.toFixed(2);
+  }
+
+  // Initialize
+  setDateTime();
+  setInterval(setDateTime, 1000); // Keep time updated
+  updateReceipt();
+</script>
+
+</body>
+</html><s></s>
